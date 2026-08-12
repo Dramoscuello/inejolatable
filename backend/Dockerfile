@@ -17,6 +17,9 @@ RUN rm -rf src
 
 COPY src ./src
 
+# Fuerza la recompilación del binario real después de haber compilado el dummy.
+RUN cargo clean -p inejoma-backend
+
 # Limita jobs paralelos para evitar OOM en servidores con poca RAM.
 # Ajusta el número según la RAM disponible (ej. 1 job por cada 2 GB de RAM).
 ARG CARGO_BUILD_JOBS=2
