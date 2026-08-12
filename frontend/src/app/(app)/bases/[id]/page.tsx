@@ -96,6 +96,12 @@ export default function BaseDetailPage() {
   const [activeTab, setActiveTab] = useState<"datos" | "forms">("datos");
   const [forms, setForms] = useState<import("@/lib/api").Form[]>([]);
 
+  useEffect(() => {
+    document.title = activeTable?.name
+      ? `${activeTable.name} — inejomaTable`
+      : "Base — inejomaTable";
+  }, [activeTable]);
+
   const fetchForms = useCallback(async () => {
     try {
       const data = await listBaseForms(baseId);

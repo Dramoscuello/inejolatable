@@ -11,6 +11,7 @@ export default function FormEditPage() {
   const formId = params.id as string;
   const [table, setTable] = useState<TableWithFields | null>(null);
   const [loading, setLoading] = useState(true);
+  useEffect(() => { document.title = "Editar formulario — inejomaTable"; }, []);
 
   const fetchTable = useCallback(async () => {
     try {

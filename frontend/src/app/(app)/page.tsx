@@ -20,6 +20,7 @@ export default function HomePage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [bases, setBases] = useState<Base[]>([]);
   const [loading, setLoading] = useState(true);
+  useEffect(() => { document.title = "Inicio — inejomaTable"; }, []);
 
   const fetchBases = useCallback(async () => {
     try {

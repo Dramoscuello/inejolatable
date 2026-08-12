@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "inejomaTable — Iniciar sesión",
+  title: {
+    template: "%s — inejomaTable",
+    default: "inejomaTable",
+  },
   description: "Clon self-hosted de Airtable",
 };
 

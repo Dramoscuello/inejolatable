@@ -336,6 +336,11 @@ export default function PublicFormPage() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
+    if (form) document.title = `${form.name} — inejomaTable`;
+    else document.title = "Formulario — inejomaTable";
+  }, [form]);
+
+  useEffect(() => {
     const hashOnly = hash.split("?")[0];
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
     fetch(`${API_URL}/api/v1/f/${hashOnly}`)
