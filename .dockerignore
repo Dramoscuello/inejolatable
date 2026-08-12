@@ -1,0 +1,14 @@
+node_modules/
+.next/
+target/
+.git/
+.gitignore
+.env
+.env.*
+!.env.example
+*.md
+.DS_Store
+.vscode/
+.idea/
+docker-compose.yml
+nginx.conf

@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-brand-blue: #1665d8;
+  --color-brand-ink: #1f2937;
+  --color-brand-canvas: #ffffff;
+  --color-brand-surface: #f7f8fa;
+  --color-brand-surface-strong: #e5e7eb;
+  --color-brand-border: #e5e7eb;
+  --color-brand-border-strong: #d1d5db;
+  --color-brand-body: #1f2937;
+  --color-brand-muted: #6b7280;
+  --color-brand-yellow: #fcb400;
+  --color-brand-turquoise: #14bfff;
+  --color-brand-red: #f82b60;
+  --color-brand-error: #f82b60;
+  --color-brand-success: #22c55e;
+  --color-brand-shadow: rgba(45, 127, 249, 0.12);
+  --color-brand-rail: #e5e7eb;
+  --color-brand-filter-bg: #dcfce7;
+  --color-brand-filter-text: #16a34a;
+  --color-brand-group-bg: #ede9fe;
+  --color-brand-group-text: #7c3aed;
+  --color-brand-sort-bg: #fff7ed;
+  --color-brand-sort-text: #ea580c;
+  --color-brand-hide-bg: #dbeafe;
+  --color-brand-hide-text: #2563eb;
+  --color-brand-color-bg: #fff7ed;
+  --color-brand-color-text: #ea580c;
+}
+
+body {
+  background: var(--color-brand-canvas);
+  color: var(--color-brand-body);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
