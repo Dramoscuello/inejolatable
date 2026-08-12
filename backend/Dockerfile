@@ -3,25 +3,14 @@ FROM rust:latest AS builder
 
 WORKDIR /app
 
-# Evita que Cargo reconstruye innecesariamente y mejora estabilidad en builds
 ENV CARGO_NET_RETRY=10
 ENV CARGO_TERM_COLOR=never
 ENV RUST_BACKTRACE=1
 
-COPY Cargo.toml Cargo.lock ./
+# Copia todo el código fuente directamente
+COPY . .
 
-# Cacheo de dependencias: compilamos un binario dummy con las mismas deps
-RUN mkdir src && echo 'fn main() {}' > src/main.rs
-RUN cargo build --release --locked
-RUN rm -rf src
-
-COPY src ./src
-
-# Fuerza la recompilación del binario real después de haber compilado el dummy.
-RUN cargo clean -p inejoma-backend
-
-# Limita jobs paralelos para evitar OOM en servidores con poca RAM.
-# Ajusta el número según la RAM disponible (ej. 1 job por cada 2 GB de RAM).
+# Compila el backend real. Limita jobs si el servidor tiene poca RAM.
 ARG CARGO_BUILD_JOBS=2
 RUN cargo build --release --locked --jobs ${CARGO_BUILD_JOBS}
 
