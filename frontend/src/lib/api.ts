@@ -256,6 +256,38 @@ export function getRecords(tableId: string): Promise<TableRecord[]> {
   return request<TableRecord[]>(`/api/v1/tables/${tableId}/records`);
 }
 
+export interface PickerField {
+  id: string;
+  name: string;
+  field_type: string;
+  options_json: unknown;
+  is_primary: boolean;
+}
+
+export interface PickerRecord {
+  id: string;
+  fields: Record<string, unknown>;
+}
+
+export interface RecordPickerResponse {
+  fields: PickerField[];
+  records: PickerRecord[];
+  next_cursor: string | null;
+}
+
+export function getPickerRecords(
+  tableId: string,
+  params: { searchQuery?: string; cursor?: string; limit?: number },
+  signal?: AbortSignal,
+): Promise<RecordPickerResponse> {
+  const qs = new URLSearchParams();
+  if (params.searchQuery) qs.set("searchQuery", params.searchQuery);
+  if (params.cursor) qs.set("cursor", params.cursor);
+  if (params.limit) qs.set("limit", String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return request<RecordPickerResponse>(`/api/v1/tables/${tableId}/records/picker${suffix}`, { signal });
+}
+
 export function createRecord(
   tableId: string,
   data: { data_json: Record<string, unknown> },

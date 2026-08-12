@@ -220,6 +220,48 @@ pub struct UpdateRecordRequest {
 }
 
 #[derive(Debug, Serialize)]
+pub struct PickerField {
+    pub id: String,
+    pub name: String,
+    pub field_type: String,
+    pub options_json: Option<serde_json::Value>,
+    pub is_primary: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PickerQuery {
+    pub search_query: Option<String>,
+    pub limit: Option<i64>,
+    pub cursor: Option<String>,
+}
+
+impl From<Field> for PickerField {
+    fn from(f: Field) -> Self {
+        Self {
+            id: f.id,
+            name: f.name,
+            field_type: f.field_type,
+            options_json: f.options_json,
+            is_primary: f.is_primary,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct PickerRecord {
+    pub id: String,
+    pub fields: serde_json::Value,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RecordPickerResponse {
+    pub fields: Vec<PickerField>,
+    pub records: Vec<PickerRecord>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
 pub struct TableWithFields {
     pub id: String,
     pub base_id: String,

@@ -164,7 +164,7 @@ function FieldLabel({ field }: { field: Field }) {
   );
 }
 
-function FieldEditor({ field, value, onChange }: { field: Field; value: unknown; onChange: (v: unknown) => void }) {
+export function FieldEditor({ field, value, onChange }: { field: Field; value: unknown; onChange: (v: unknown) => void }) {
   const type = field.field_type;
   if (READ_ONLY_TYPES.has(type)) return <ReadOnlyField field={field} value={value} />;
   if (type === "checkbox") return <CheckboxField field={field} value={value} onChange={onChange} />;

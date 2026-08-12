@@ -19,7 +19,8 @@ use handlers::base::{
 };
 use handlers::data::{
     create_field, create_record, create_table, delete_field, delete_record, delete_table,
-    get_table, list_fields, list_records, list_tables, update_field, update_record, update_table,
+    get_table, list_fields, list_records, list_records_picker, list_tables, update_field,
+    update_record, update_table,
 };
 use handlers::forms::{
     create_form, delete_form, form_submit, get_form, get_form_by_hash,
@@ -102,6 +103,10 @@ async fn main() {
         .route(
             "/api/v1/tables/{table_id}/records",
             get(list_records).post(create_record),
+        )
+        .route(
+            "/api/v1/tables/{table_id}/records/picker",
+            get(list_records_picker),
         )
         .route(
             "/api/v1/records/{record_id}",

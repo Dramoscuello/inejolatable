@@ -1,14 +1,15 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     Json,
 };
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 
 use crate::db::generate_id;
 use crate::errors::AppError;
 use crate::models::{
-    CreateFieldRequest, CreateRecordRequest, CreateTableRequest, Field, Record, Table,
-    TableWithFields, UpdateFieldRequest, UpdateRecordRequest, UpdateTableRequest,
+    CreateFieldRequest, CreateRecordRequest, CreateTableRequest, Field, PickerField,
+    PickerQuery, PickerRecord, Record, RecordPickerResponse, Table, TableWithFields,
+    UpdateFieldRequest, UpdateRecordRequest, UpdateTableRequest,
 };
 use crate::state::AppState;
 
@@ -318,6 +319,142 @@ pub async fn list_records(
     .map_err(|e| AppError::Internal(format!("Error al listar registros: {e}")))?;
 
     Ok(Json(records))
+}
+
+fn encode_cursor(created_at: &DateTime<Utc>, id: &str) -> String {
+    let raw = format!("{}|{}", created_at.to_rfc3339(), id);
+    raw.as_bytes()
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect()
+}
+
+fn decode_cursor(cursor: &str) -> Option<(DateTime<Utc>, String)> {
+    if cursor.len() % 2 != 0 {
+        return None;
+    }
+    let bytes = (0..cursor.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&cursor[i..i + 2], 16).ok())
+        .collect::<Option<Vec<u8>>>()?;
+    let raw = String::from_utf8(bytes).ok()?;
+    let (ts, id) = raw.split_once('|')?;
+    let dt = DateTime::parse_from_rfc3339(ts).ok()?.with_timezone(&Utc);
+    Some((dt, id.to_string()))
+}
+
+pub async fn list_records_picker(
+    State(state): State<AppState>,
+    Path(table_id): Path<String>,
+    Query(params): Query<PickerQuery>,
+) -> Result<Json<RecordPickerResponse>, AppError> {
+    let fields = sqlx::query_as::<_, Field>(
+        "SELECT * FROM fields WHERE table_id = $1 ORDER BY order_position ASC",
+    )
+    .bind(&table_id)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| AppError::Internal(format!("Error al obtener campos: {e}")))?;
+
+    if fields.is_empty() {
+        return Err(AppError::BadRequest("Tabla no encontrada".into()));
+    }
+
+    let primary_idx = fields.iter().position(|f| f.is_primary).unwrap_or(0);
+    let primary = &fields[primary_idx];
+    let card_fields: Vec<&Field> = std::iter::once(primary)
+        .chain(fields.iter().filter(|f| f.id != primary.id).take(4))
+        .collect();
+
+    let limit = params.limit.unwrap_or(20).clamp(1, 50);
+    let search = params
+        .search_query
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+
+    let mut qb = sqlx::QueryBuilder::<sqlx::Postgres>::new(
+        "SELECT id, data_json, created_at FROM records WHERE table_id = ",
+    );
+    qb.push_bind(&table_id);
+
+    if let Some(s) = search {
+        let pattern = format!(
+            "%{}%",
+            s.replace('\\', r"\\").replace('%', r"\%").replace('_', r"\_")
+        );
+        qb.push(" AND (");
+        let mut first = true;
+        for f in card_fields.iter().filter(|f| f.field_type != "attachment") {
+            if !first {
+                qb.push(" OR ");
+            }
+            first = false;
+            qb.push("data_json->>");
+            qb.push_bind(f.id.clone());
+            qb.push(" ILIKE ");
+            qb.push_bind(pattern.clone());
+        }
+        if first {
+            qb.push("FALSE");
+        }
+        qb.push(")");
+    }
+
+    if let Some(cursor) = params.cursor.as_deref().filter(|c| !c.is_empty()) {
+        if let Some((ts, id)) = decode_cursor(cursor) {
+            qb.push(" AND (created_at, id) > (");
+            qb.push_bind(ts);
+            qb.push(", ");
+            qb.push_bind(id);
+            qb.push(")");
+        }
+    }
+
+    qb.push(" ORDER BY created_at ASC, id ASC LIMIT ");
+    qb.push_bind(limit + 1);
+
+    let rows = qb
+        .build_query_as::<(String, serde_json::Value, DateTime<Utc>)>()
+        .fetch_all(&state.pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("Error al listar registros: {e}")))?;
+
+    let has_more = rows.len() as i64 > limit;
+    let page = &rows[..rows.len().min(limit as usize)];
+
+    let next_cursor = if has_more {
+        page.last()
+            .map(|(_, _, created_at)| created_at)
+            .and_then(|ts| page.last().map(|(id, _, _)| encode_cursor(ts, id)))
+    } else {
+        None
+    };
+
+    let records: Vec<PickerRecord> = page
+        .iter()
+        .map(|(id, data_json, _)| {
+            let projected = serde_json::Map::from_iter(card_fields.iter().filter_map(|f| {
+                data_json
+                    .get(&f.id)
+                    .map(|v| (f.id.clone(), v.clone()))
+            }));
+            PickerRecord {
+                id: id.clone(),
+                fields: serde_json::Value::Object(projected),
+            }
+        })
+        .collect();
+
+    Ok(Json(RecordPickerResponse {
+        fields: card_fields
+            .into_iter()
+            .cloned()
+            .map(PickerField::from)
+            .collect(),
+        records,
+        next_cursor,
+    }))
 }
 
 pub async fn create_record(
