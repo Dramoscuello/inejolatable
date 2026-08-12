@@ -2,13 +2,25 @@
 FROM rust:1.80-bookworm AS builder
 
 WORKDIR /app
+
+# Evita que Cargo reconstruye innecesariamente y mejora estabilidad en builds
+ENV CARGO_NET_RETRY=10
+ENV CARGO_TERM_COLOR=never
+ENV RUST_BACKTRACE=1
+
 COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --release
+
+# Cacheo de dependencias: compilamos un binario dummy con las mismas deps
+RUN mkdir src && echo 'fn main() {}' > src/main.rs
+RUN cargo build --release --locked
 RUN rm -rf src
 
 COPY src ./src
-RUN cargo build --release
+
+# Limita jobs paralelos para evitar OOM en servidores con poca RAM.
+# Ajusta el número según la RAM disponible (ej. 1 job por cada 2 GB de RAM).
+ARG CARGO_BUILD_JOBS=2
+RUN cargo build --release --locked --jobs ${CARGO_BUILD_JOBS}
 
 # ── Runtime stage ──────────────────────
 FROM debian:bookworm-slim
