@@ -44,7 +44,7 @@ export function FieldDescriptionModal({
           ? (field.options_json as Record<string, unknown>)
           : {};
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/v1/fields/${field.id}`,
+        `${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/fields/${field.id}`,
         {
           method: "PATCH",
           headers: {

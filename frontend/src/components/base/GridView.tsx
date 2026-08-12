@@ -521,7 +521,7 @@ export function GridView({
             ? field.options_json
             : {};
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/v1/tables/${field.table_id}/fields`,
+          `${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/tables/${field.table_id}/fields`,
           {
             method: "POST",
             headers: {
@@ -547,7 +547,7 @@ export function GridView({
       const pos = side === "left" ? field.order_position : field.order_position + 1;
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/v1/tables/${field.table_id}/fields`,
+          `${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/tables/${field.table_id}/fields`,
           {
             method: "POST",
             headers: {

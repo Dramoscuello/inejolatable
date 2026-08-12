@@ -342,7 +342,7 @@ export default function PublicFormPage() {
 
   useEffect(() => {
     const hashOnly = hash.split("?")[0];
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
     fetch(`${API_URL}/api/v1/f/${hashOnly}`)
       .then((r) => r.json())
       .then((f: PublicForm) => {
@@ -370,7 +370,7 @@ export default function PublicFormPage() {
 
     setSending(true);
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
       const data: Record<string, unknown> = {};
       Object.entries(values).forEach(([k, v]) => {
         if (!v) return;

@@ -43,7 +43,7 @@ export function AppCard({
       const { createBase, getBases } = await import("@/lib/api");
 
       const token = localStorage.getItem("access_token");
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/v1/bases/${id}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/bases/${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -60,7 +60,7 @@ export function AppCard({
     e.preventDefault();
     try {
       const token = localStorage.getItem("access_token");
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/v1/bases/${id}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/bases/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

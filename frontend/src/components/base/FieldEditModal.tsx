@@ -71,7 +71,7 @@ export function FieldEditModal({ field, open, onClose, onSaved }: FieldEditModal
     setSaving(true);
     setError("");
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/v1/fields/${field.id}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/fields/${field.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
