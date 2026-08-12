@@ -270,6 +270,7 @@ export interface PickerRecord {
 }
 
 export interface RecordPickerResponse {
+  table_name: string;
   fields: PickerField[];
   records: PickerRecord[];
   next_cursor: string | null;
@@ -286,6 +287,19 @@ export function getPickerRecords(
   if (params.limit) qs.set("limit", String(params.limit));
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   return request<RecordPickerResponse>(`/api/v1/tables/${tableId}/records/picker${suffix}`, { signal });
+}
+
+export function getPublicPickerRecords(
+  tableId: string,
+  params: { searchQuery?: string; cursor?: string; limit?: number },
+  signal?: AbortSignal,
+): Promise<RecordPickerResponse> {
+  const qs = new URLSearchParams();
+  if (params.searchQuery) qs.set("searchQuery", params.searchQuery);
+  if (params.cursor) qs.set("cursor", params.cursor);
+  if (params.limit) qs.set("limit", String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return request<RecordPickerResponse>(`/api/v1/f/picker/${tableId}${suffix}`, { signal });
 }
 
 export function createRecord(

@@ -2,19 +2,16 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Search, Plus, Paperclip } from "lucide-react";
-import { getPickerRecords, type Field, type PickerField, type PickerRecord } from "@/lib/api";
+import {
+  getPickerRecords,
+  getPublicPickerRecords,
+  type Field,
+  type PickerField,
+  type PickerRecord,
+} from "@/lib/api";
 import { formatDisplayValue, hexAlpha } from "@/lib/format";
 import { COLOR_PALETTE } from "@/store/useBaseStore";
 import { CreateRecordModal } from "./CreateRecordModal";
-
-interface LinkedRecordPickerProps {
-  tableId: string;
-  position: { x: number; y: number };
-  selectedIds: string[];
-  single: boolean;
-  onSelect: (ids: string[]) => void;
-  onClose: () => void;
-}
 
 const PAGE_SIZE = 20;
 const MIN_W = 300;
@@ -116,14 +113,27 @@ function FieldPreview({ field, value }: { field: PickerField; value: unknown }) 
   );
 }
 
-export function LinkedRecordPicker({
+export interface LinkedRecordListProps {
+  tableId: string;
+  selectedIds: string[];
+  single: boolean;
+  onSelect: (ids: string[]) => void;
+  publicApi?: boolean;
+  allowCreate?: boolean;
+  onCreated?: (recordId: string) => void;
+  onData?: (payload: { tableName: string; records: PickerRecord[]; fields: PickerField[] }) => void;
+}
+
+export function LinkedRecordList({
   tableId,
-  position,
   selectedIds,
   single,
   onSelect,
-  onClose,
-}: LinkedRecordPickerProps) {
+  publicApi,
+  allowCreate,
+  onCreated,
+  onData,
+}: LinkedRecordListProps) {
   const [fields, setFields] = useState<PickerField[]>([]);
   const [records, setRecords] = useState<PickerRecord[]>([]);
   const [search, setSearch] = useState("");
@@ -131,13 +141,16 @@ export function LinkedRecordPicker({
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [size, setSize] = useState<Size>({ w: 360, h: 320 });
-  const ref = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const resizeRef = useRef<{ startX: number; startY: number; startSize: Size } | null>(null);
+  const dataRef = useRef(onData);
+  useEffect(() => {
+    dataRef.current = onData;
+  }, [onData]);
+
+  const fetcher = publicApi ? getPublicPickerRecords : getPickerRecords;
 
   const primaryFieldId =
     fields.find((f) => f.is_primary)?.id || fields[0]?.id || null;
@@ -148,7 +161,7 @@ export function LinkedRecordPicker({
       const controller = new AbortController();
       abortRef.current = controller;
       try {
-        const res = await getPickerRecords(
+        const res = await fetcher(
           tableId,
           { searchQuery: query, cursor: cursor || undefined, limit: PAGE_SIZE },
           controller.signal,
@@ -157,6 +170,7 @@ export function LinkedRecordPicker({
         if (!append) setFields(res.fields);
         setRecords((prev) => (append ? [...prev, ...res.records] : res.records));
         setNextCursor(res.next_cursor);
+        dataRef.current?.({ tableName: res.table_name, records: res.records, fields: res.fields });
       } catch {
         if (!controller.signal.aborted) {
           if (!append) setRecords([]);
@@ -168,18 +182,19 @@ export function LinkedRecordPicker({
         }
       }
     },
-    [tableId],
+    [fetcher, tableId],
   );
 
   useEffect(() => {
     const controller = new AbortController();
     abortRef.current = controller;
-    getPickerRecords(tableId, { limit: PAGE_SIZE }, controller.signal)
+    fetcher(tableId, { limit: PAGE_SIZE }, controller.signal)
       .then((res) => {
         if (controller.signal.aborted) return;
         setFields(res.fields);
         setRecords(res.records);
         setNextCursor(res.next_cursor);
+        dataRef.current?.({ tableName: res.table_name, records: res.records, fields: res.fields });
       })
       .catch(() => {
         if (!controller.signal.aborted) setRecords([]);
@@ -191,20 +206,7 @@ export function LinkedRecordPicker({
       controller.abort();
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [tableId]);
-
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [onClose]);
+  }, [fetcher, tableId]);
 
   useEffect(() => {
     if (!sentinelRef.current || !nextCursor || loading || loadingMore) return;
@@ -254,59 +256,43 @@ export function LinkedRecordPicker({
     } else {
       onSelect([...selectedIds, recordId]);
     }
-  };
-
-  const handleResizeStart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    resizeRef.current = { startX: e.clientX, startY: e.clientY, startSize: size };
-    const onMove = (ev: MouseEvent) => {
-      if (!resizeRef.current) return;
-      const dx = ev.clientX - resizeRef.current.startX;
-      const dy = ev.clientY - resizeRef.current.startY;
-      setSize({
-        w: Math.min(MAX_W, Math.max(MIN_W, resizeRef.current.startSize.w + dx)),
-        h: Math.min(MAX_H, Math.max(MIN_H, resizeRef.current.startSize.h + dy)),
-      });
-    };
-    const onUp = () => {
-      resizeRef.current = null;
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
-    };
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
+    onCreated?.(recordId);
   };
 
   const secondaryFields = fields.filter((f) => f.id !== primaryFieldId);
 
   return (
-    <div
-      ref={ref}
-      className="fixed z-50 bg-white rounded-xl border border-brand-border shadow-[0_4px_16px_rgba(15,23,42,0.12)] overflow-hidden flex flex-col"
-      style={{ left: position.x, top: position.y, width: size.w, height: size.h }}
-    >
+    <>
       <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b border-brand-border shrink-0">
         <div className="relative flex-1">
           <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-brand-border-strong pointer-events-none" />
           <input
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
             placeholder="Buscar"
             autoFocus
             className="w-full pl-7 pr-2 py-1.5 text-xs text-brand-ink bg-transparent outline-none placeholder:text-brand-border-strong"
           />
         </div>
-        <button
-          onClick={() => setCreateOpen(true)}
-          title="Crear registro en la tabla vinculada"
-          className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-brand-muted hover:text-brand-blue hover:bg-brand-surface transition-colors cursor-pointer"
-        >
-          <Plus size={14} />
-        </button>
+        {allowCreate && (
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            title="Crear registro en la tabla vinculada"
+            className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-brand-muted hover:text-brand-blue hover:bg-brand-surface transition-colors cursor-pointer"
+          >
+            <Plus size={14} />
+          </button>
+        )}
       </div>
 
-      <div ref={listRef} className="flex-1 overflow-y-auto">
+      <div ref={listRef} className="flex-1 overflow-y-auto min-h-0">
         {loading ? (
           <p className="px-3 py-6 text-xs text-brand-muted text-center">Cargando...</p>
         ) : records.length === 0 ? (
@@ -328,6 +314,7 @@ export function LinkedRecordPicker({
               return (
                 <button
                   key={r.id}
+                  type="button"
                   onClick={() => handleToggle(r.id)}
                   className={`w-full text-left px-3 py-2.5 border-b border-brand-border/60 transition-colors cursor-pointer ${
                     checked ? "bg-blue-50" : "hover:bg-brand-surface/60"
@@ -364,6 +351,89 @@ export function LinkedRecordPicker({
         )}
       </div>
 
+      {allowCreate && (
+        <CreateRecordModal
+          key={createOpen ? "open" : "closed"}
+          tableId={tableId}
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          onCreated={handleCreated}
+        />
+      )}
+    </>
+  );
+}
+
+interface LinkedRecordPickerProps {
+  tableId: string;
+  position: { x: number; y: number };
+  selectedIds: string[];
+  single: boolean;
+  onSelect: (ids: string[]) => void;
+  onClose: () => void;
+}
+
+export function LinkedRecordPicker({
+  tableId,
+  position,
+  selectedIds,
+  single,
+  onSelect,
+  onClose,
+}: LinkedRecordPickerProps) {
+  const [size, setSize] = useState<Size>({ w: 360, h: 320 });
+  const ref = useRef<HTMLDivElement>(null);
+  const resizeRef = useRef<{ startX: number; startY: number; startSize: Size } | null>(null);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizeRef.current = { startX: e.clientX, startY: e.clientY, startSize: size };
+    const onMove = (ev: MouseEvent) => {
+      if (!resizeRef.current) return;
+      const dx = ev.clientX - resizeRef.current.startX;
+      const dy = ev.clientY - resizeRef.current.startY;
+      setSize({
+        w: Math.min(MAX_W, Math.max(MIN_W, resizeRef.current.startSize.w + dx)),
+        h: Math.min(MAX_H, Math.max(MIN_H, resizeRef.current.startSize.h + dy)),
+      });
+    };
+    const onUp = () => {
+      resizeRef.current = null;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
+  return (
+    <div
+      ref={ref}
+      className="fixed z-50 bg-white rounded-xl border border-brand-border shadow-[0_4px_16px_rgba(15,23,42,0.12)] overflow-hidden flex flex-col"
+      style={{ left: position.x, top: position.y, width: size.w, height: size.h }}
+    >
+      <LinkedRecordList
+        tableId={tableId}
+        selectedIds={selectedIds}
+        single={single}
+        onSelect={onSelect}
+        allowCreate
+      />
+
       <div
         onMouseDown={handleResizeStart}
         className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize flex items-end justify-end"
@@ -375,14 +445,6 @@ export function LinkedRecordPicker({
           <line x1="10.2" y1="7.2" x2="7.2" y2="10.2" />
         </svg>
       </div>
-
-      <CreateRecordModal
-        key={createOpen ? "open" : "closed"}
-        tableId={tableId}
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreated={handleCreated}
-      />
     </div>
   );
 }

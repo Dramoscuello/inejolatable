@@ -72,7 +72,8 @@ async fn main() {
         .route("/api/v1/auth/register", post(handlers::auth::register))
         .route("/api/v1/auth/login", post(handlers::auth::login))
         .route("/api/v1/auth/refresh", post(handlers::auth::refresh))
-        .route("/api/v1/f/{hash}", get(get_form_by_hash).post(form_submit));
+        .route("/api/v1/f/{hash}", get(get_form_by_hash).post(form_submit))
+        .route("/api/v1/f/picker/{table_id}", get(list_records_picker));
 
     let protected_routes = Router::new()
         .route("/api/v1/bases", get(list_bases))

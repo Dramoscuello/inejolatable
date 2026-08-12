@@ -348,6 +348,13 @@ pub async fn list_records_picker(
     Path(table_id): Path<String>,
     Query(params): Query<PickerQuery>,
 ) -> Result<Json<RecordPickerResponse>, AppError> {
+    let table_name = sqlx::query_scalar::<_, String>("SELECT name FROM tables WHERE id = $1")
+        .bind(&table_id)
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("Error al obtener tabla: {e}")))?
+        .ok_or_else(|| AppError::BadRequest("Tabla no encontrada".into()))?;
+
     let fields = sqlx::query_as::<_, Field>(
         "SELECT * FROM fields WHERE table_id = $1 ORDER BY order_position ASC",
     )
@@ -447,6 +454,7 @@ pub async fn list_records_picker(
         .collect();
 
     Ok(Json(RecordPickerResponse {
+        table_name,
         fields: card_fields
             .into_iter()
             .cloned()

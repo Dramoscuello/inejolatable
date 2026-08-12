@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import { LinkedRecordFormField } from "@/components/base/LinkedRecordFormField";
 
 interface FormField {
   id: string;
@@ -15,6 +16,8 @@ interface FormField {
     choices?: { id?: string; name: string; color?: string }[];
     durationFormat?: string;
     default?: boolean;
+    foreignTableId?: string;
+    prefersSingleRecordLink?: boolean;
   } | null;
 }
 
@@ -311,6 +314,30 @@ function FieldRenderer({
           className={`${baseStyle} file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-brand-surface file:text-brand-ink hover:file:bg-brand-surface-strong cursor-pointer`}
         />
       );
+
+    case "multipleRecordLinks": {
+      const foreignTableId = opts.foreignTableId;
+      if (!foreignTableId) {
+        return (
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className={baseStyle}
+            placeholder={field.name}
+          />
+        );
+      }
+      return (
+        <LinkedRecordFormField
+          foreignTableId={foreignTableId}
+          single={Boolean(opts.prefersSingleRecordLink)}
+          value={value}
+          onChange={onChange}
+          error={error}
+        />
+      );
+    }
 
     default:
       return (

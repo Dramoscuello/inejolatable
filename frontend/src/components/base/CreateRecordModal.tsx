@@ -57,7 +57,7 @@ export function CreateRecordModal({ tableId, open, onClose, onCreated }: CreateR
       <div className="relative bg-white rounded-2xl shadow-xl w-[440px] max-w-[92vw] max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-brand-border shrink-0">
           <h3 className="text-sm font-semibold text-brand-ink">Crear registro</h3>
-          <button onClick={onClose} className="p-1 rounded-md text-brand-muted hover:text-brand-ink hover:bg-brand-surface transition-colors cursor-pointer">
+          <button type="button" onClick={onClose} className="p-1 rounded-md text-brand-muted hover:text-brand-ink hover:bg-brand-surface transition-colors cursor-pointer">
             <X size={16} />
           </button>
         </div>
@@ -76,13 +76,13 @@ export function CreateRecordModal({ tableId, open, onClose, onCreated }: CreateR
           )}
         </div>
         <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-brand-border shrink-0">
-          <button
+          <button type="button"
             onClick={onClose}
             className="px-3 py-1.5 text-xs font-medium text-brand-muted hover:bg-brand-surface rounded-md transition-colors cursor-pointer"
           >
             Cancelar
           </button>
-          <button
+          <button type="button"
             onClick={handleSave}
             disabled={saving || loading}
             className="px-3 py-1.5 text-xs font-medium text-white bg-brand-blue hover:bg-brand-blue/90 rounded-md transition-colors cursor-pointer disabled:opacity-50"

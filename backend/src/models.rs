@@ -256,6 +256,7 @@ pub struct PickerRecord {
 
 #[derive(Debug, Serialize)]
 pub struct RecordPickerResponse {
+    pub table_name: String,
     pub fields: Vec<PickerField>,
     pub records: Vec<PickerRecord>,
     pub next_cursor: Option<String>,
