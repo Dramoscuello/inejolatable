@@ -375,8 +375,6 @@ export default function PublicFormPage() {
           data[k] = isNaN(n) ? v : n;
         } else if (field?.field_type === "checkbox") {
           data[k] = v === "true";
-        } else if (field?.field_type === "attachment") {
-          try { data[k] = JSON.parse(v); } catch { data[k] = v; }
         } else {
           data[k] = v;
         }
