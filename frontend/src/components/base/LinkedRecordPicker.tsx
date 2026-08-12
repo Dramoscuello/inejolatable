@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Search, X, Plus } from "lucide-react";
-import { getRecords, TableRecord } from "@/lib/api";
+import { useState, useRef, useEffect } from "react";
+import { Search } from "lucide-react";
+import { getRecords, getTable, TableRecord, Field } from "@/lib/api";
 
 interface LinkedRecordPickerProps {
   tableId: string;
@@ -22,10 +22,10 @@ export function LinkedRecordPicker({
   onClose,
 }: LinkedRecordPickerProps) {
   const [records, setRecords] = useState<TableRecord[]>([]);
+  const [primaryFieldId, setPrimaryFieldId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const ref = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -41,13 +41,28 @@ export function LinkedRecordPicker({
   }, [onClose]);
 
   useEffect(() => {
-    getRecords(tableId).then(setRecords).catch(() => setRecords([])).finally(() => setLoading(false));
+    Promise.all([getTable(tableId), getRecords(tableId)])
+      .then(([table, recs]) => {
+        const pf: Field | undefined =
+          table.fields.find((f) => f.is_primary) || table.fields[0];
+        setPrimaryFieldId(pf?.id || null);
+        setRecords(recs);
+      })
+      .catch(() => setRecords([]))
+      .finally(() => setLoading(false));
   }, [tableId]);
+
+  const getName = (r: TableRecord): string => {
+    if (primaryFieldId) {
+      const v = r.data_json[primaryFieldId];
+      if (v !== null && v !== undefined && String(v).trim() !== "") return String(v);
+    }
+    return r.id;
+  };
 
   const filtered = records.filter((r) => {
     if (!search) return true;
-    const name = String(Object.values(r.data_json)[0] || "");
-    return name.toLowerCase().includes(search.toLowerCase());
+    return getName(r).toLowerCase().includes(search.toLowerCase());
   });
 
   const handleToggle = (id: string) => {
@@ -85,7 +100,7 @@ export function LinkedRecordPicker({
           <p className="px-3 py-4 text-xs text-brand-muted text-center">Sin resultados</p>
         ) : (
           filtered.map((r) => {
-            const name = String(Object.values(r.data_json)[0] || r.id);
+            const name = getName(r);
             const checked = selectedIds.includes(r.id);
             return (
               <button

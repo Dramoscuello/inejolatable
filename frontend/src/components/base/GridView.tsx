@@ -1211,6 +1211,26 @@ function GridCell({
   const isCheckbox = field.field_type === "checkbox";
   const isFormula = ["formula", "rollup", "lookup", "count", "autoNumber", "createdTime", "lastModifiedTime"].includes(field.field_type);
 
+  useEffect(() => {
+    if (!isLinkedRecord) return;
+    const foreignTableId = (field.options_json as { foreignTableId?: string })?.foreignTableId;
+    if (!foreignTableId) return;
+    import("@/lib/api")
+      .then(({ getTable, getRecords }) =>
+        Promise.all([getTable(foreignTableId), getRecords(foreignTableId)])
+      )
+      .then(([table, recs]) => {
+        const pf = table.fields.find((f) => f.is_primary) || table.fields[0];
+        const map: Record<string, string> = {};
+        recs.forEach((r) => {
+          const v = pf ? r.data_json[pf.id] : undefined;
+          map[r.id] = v !== null && v !== undefined && String(v).trim() !== "" ? String(v) : r.id;
+        });
+        setLinkedRecordsCache(map);
+      })
+      .catch(() => {});
+  }, [isLinkedRecord, field.options_json]);
+
   const parseEditValue = useCallback(
     (val: string): unknown => {
       if (field.field_type === "duration" && val !== "") {
