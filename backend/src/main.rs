@@ -67,6 +67,7 @@ async fn main() {
         .allow_headers(Any);
 
     let public_routes = Router::new()
+        .route("/health", get(|| async { "OK" }))
         .route("/api/v1/auth/register", post(handlers::auth::register))
         .route("/api/v1/auth/login", post(handlers::auth::login))
         .route("/api/v1/auth/refresh", post(handlers::auth::refresh))
@@ -132,7 +133,7 @@ async fn main() {
         .layer(cors)
         .with_state(state);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
     tracing::info!("Servidor iniciado en http://{addr}");
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
