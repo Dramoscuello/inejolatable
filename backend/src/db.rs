@@ -140,6 +140,42 @@ pub async fn run_migrations(pool: &PgPool) {
         .execute(pool)
         .await
         .ok();
+
+    sqlx::query("ALTER TABLE workspaces DROP CONSTRAINT IF EXISTS workspaces_user_id_fkey")
+        .execute(pool)
+        .await
+        .ok();
+
+    sqlx::query(
+        "ALTER TABLE workspaces ADD CONSTRAINT workspaces_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+    )
+    .execute(pool)
+    .await
+    .ok();
+
+    sqlx::query("ALTER TABLE bases DROP CONSTRAINT IF EXISTS bases_user_id_fkey")
+        .execute(pool)
+        .await
+        .ok();
+
+    sqlx::query(
+        "ALTER TABLE bases ADD CONSTRAINT bases_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+    )
+    .execute(pool)
+    .await
+    .ok();
+
+    sqlx::query("ALTER TABLE bases DROP CONSTRAINT IF EXISTS bases_workspace_id_fkey")
+        .execute(pool)
+        .await
+        .ok();
+
+    sqlx::query(
+        "ALTER TABLE bases ADD CONSTRAINT bases_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+    )
+    .execute(pool)
+    .await
+    .ok();
 }
 
 pub async fn seed_admin(pool: &PgPool, email: &str, password: &str, name: &str) {

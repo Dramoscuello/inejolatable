@@ -26,6 +26,7 @@ use handlers::forms::{
     create_form, delete_form, form_submit, get_form, get_form_by_hash,
     list_forms_by_base, publish_form, update_form,
 };
+use handlers::admin::{delete_user, list_users, update_user};
 use state::AppState;
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
@@ -127,6 +128,11 @@ async fn main() {
         )
         .route("/api/v1/forms/{id}/publish", post(publish_form))
         .route("/api/v1/bases/{base_id}/forms", get(list_forms_by_base))
+        .route("/api/v1/admin/users", get(list_users))
+        .route(
+            "/api/v1/admin/users/{id}",
+            patch(update_user).delete(delete_user),
+        )
         .route_layer(axum::middleware::from_fn_with_state(
             state.clone(),
             middleware::auth::jwt_auth,

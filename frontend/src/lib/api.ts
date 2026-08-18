@@ -161,6 +161,37 @@ export function refreshToken(
   });
 }
 
+export interface AdminUser {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: number;
+  state: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export function getAdminUsers(): Promise<AdminUser[]> {
+  return request<AdminUser[]>("/api/v1/admin/users");
+}
+
+export function updateAdminUser(
+  id: number,
+  data: { first_name?: string; last_name?: string; password?: string },
+): Promise<AdminUser> {
+  return request<AdminUser>(`/api/v1/admin/users/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteAdminUser(id: number): Promise<AdminUser> {
+  return request<AdminUser>(`/api/v1/admin/users/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export function getWorkspaces(): Promise<Workspace[]> {
   return request<Workspace[]>("/api/v1/workspaces");
 }

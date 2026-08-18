@@ -7,7 +7,7 @@ use crate::models::{
 };
 use crate::state::AppState;
 
-fn validate_password(password: &str) -> Result<(), AppError> {
+pub(crate) fn validate_password(password: &str) -> Result<(), AppError> {
     if password.len() < 8 {
         return Err(AppError::BadRequest(
             "La contraseña debe tener al menos 8 caracteres".into(),

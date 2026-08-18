@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Search, HelpCircle, Bell, Menu, ChevronDown, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, HelpCircle, Bell, Menu, ChevronDown, LogOut, Users } from "lucide-react";
 import { BrandLogo } from "@/components/auth/BrandLogo";
 
 interface TopBarProps {
   onToggleSidebar: () => void;
-  user: { first_name: string; last_name: string; email: string } | null;
+  user: { first_name: string; last_name: string; email: string; role?: number } | null;
   onLogout: () => void;
 }
 
 export function TopBar({ onToggleSidebar, user, onLogout }: TopBarProps) {
+  const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -96,6 +98,18 @@ export function TopBar({ onToggleSidebar, user, onLogout }: TopBarProps) {
                   {user?.email}
                 </p>
               </div>
+              {user?.role === 1 && (
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    router.push("/admin");
+                  }}
+                  className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-brand-ink hover:bg-brand-surface transition-colors cursor-pointer text-left"
+                >
+                  <Users size={14} className="text-brand-muted shrink-0" />
+                  Administrar usuarios
+                </button>
+              )}
               <button
                 onClick={() => {
                   setShowMenu(false);

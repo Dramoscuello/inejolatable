@@ -63,6 +63,13 @@ pub struct RefreshRequest {
     pub refresh_token: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateUserRequest {
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub password: Option<String>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct AuthResponse {
     pub user: UserResponse,
